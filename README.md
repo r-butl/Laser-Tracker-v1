@@ -10,9 +10,9 @@ The algorithm I developed starts by converted the current frame to a balanced gr
 This algorithm works very well for most cases, however suffers when the laser dot is stationary for too many frames, especially when the background intensity is nearly as high as the laser dot's intensity itself. One way to help with this is to increase the buffer size of the Temporal Median filter with the trade off of high computational overhead and potentially lower frame rate.
 
 ## Implementation
-Profiling with the 'gprof' command uncovered that the bottleneck function is the Temporal Median filter operation. This makes sense as the median pixel for each pixel must be calculated every time a frame is captured, which involved sorting the pixels along the buffer axis. With deeper buffer sizes, this operations becomes increasingly heavy. 
+Profiling with the 'gprof' command uncovered that the bottleneck function is the Temporal Median filter operation. This makes sense as the median pixel for each pixel must be calculated every time a frame is captured, which involves sorting the pixels along the buffer axis. With deeper buffer sizes, this operations becomes increasingly heavy. 
 
-The intial implementation was slowed down by allocation operations due to the use of a deque to store the frames and the creation of a new vector for each median calculation. The main optimization was creating a circular buffer to store the frames as well as reusing the same vector to store the pixels before the median sort operation is performed, instead of allocating a new vector for each pixel.
+The initial implementation was slowed down by allocation operations due to the use of a deque to store the frames and the creation of a new vector for each median calculation. The main optimization was creating a circular buffer to store the frames as well as reusing the same vector to store the pixels before the median sort operation is performed, instead of allocating a new vector for each pixel.
 
 
 
