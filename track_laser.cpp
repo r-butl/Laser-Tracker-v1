@@ -105,24 +105,25 @@ int main( int argc, char** argv )
 
         // Pull image and convert to gray scale
         cam >> current_frame;
-
         if (current_frame.empty()) break;
         convertGrayScale(current_frame, gray_frame);
         frame_buffer.addFrame(gray_frame);
 
+        // Background removal
         medianFrame(frame_buffer.getFrameBuffer(), median_background);
-
         absDiff(gray_frame, median_background, motion_mask);
         normalize(motion_mask);
-        binaryThresholdMask(motion_mask, 0.45);
 
+        // Thresholding, mask creation, and enhancement
+        binaryThresholdMask(motion_mask, 0.45);
         morphologicalOpening(motion_mask, morphologicalKernel);
 
+        // Center of mass calculation and plotting
         calculateCOM(motion_mask, x_crosshair, y_crosshair);
-
         cv::line(current_frame, cv::Point(0, y_crosshair), cv::Point(current_frame.cols, y_crosshair), color, 2);
         cv::line(current_frame, cv::Point(x_crosshair, 0), cv::Point(x_crosshair, current_frame.rows), color, 2);
 
+        // Final display
         cv::imshow("Result", current_frame);
 
         writer.write(current_frame);
@@ -135,6 +136,7 @@ int main( int argc, char** argv )
 };
 
 void convertGrayScale(const cv::Mat& input_frame, cv::Mat& output_frame){
+    // Converts an image to gray scale
 
     float red = 0.299;
     float green = 0.587;
@@ -162,8 +164,8 @@ void convertGrayScale(const cv::Mat& input_frame, cv::Mat& output_frame){
 }
 
 void medianFrame(const std::vector<cv::Mat>* frame_buffer, cv::Mat& output_frame) {
+    // Calculates the median frame from a history buffer
     if (frame_buffer->empty()) return;
-
     cv::Size size = frame_buffer->front().size();
 
     // Ensure output frame is properly initialized
@@ -171,7 +173,6 @@ void medianFrame(const std::vector<cv::Mat>* frame_buffer, cv::Mat& output_frame
         output_frame = cv::Mat::zeros(size, CV_8UC1);
 
     int buff_size = frame_buffer->size();
-
     std::vector<uchar> pixels(buff_size);
 
     for (int y = 0; y < size.height; y++) {
@@ -190,6 +191,7 @@ void medianFrame(const std::vector<cv::Mat>* frame_buffer, cv::Mat& output_frame
 }
 
 void normalize(cv::Mat& input_frame){
+    // Performed min max normalization on the image.
 
     int min = 255;
     int max = 0;
@@ -215,6 +217,7 @@ void normalize(cv::Mat& input_frame){
 }
 
 void binaryThresholdMask(cv::Mat& frame, float threshold){
+    // Creates a binary mask using a threshold
 
     int pixel_threshold = float(threshold * 255.0);
     uchar* data = frame.data;
@@ -234,6 +237,7 @@ void binaryThresholdMask(cv::Mat& frame, float threshold){
 }
 
 void absDiff(const cv::Mat& input_frame_1, const cv::Mat& input_frame_2, cv::Mat& output_frame){
+    // Calculates the absolute difference between two images
 
     uchar* input_1_data = input_frame_1.data;
     uchar* input_2_data = input_frame_2.data;
@@ -248,6 +252,7 @@ void absDiff(const cv::Mat& input_frame_1, const cv::Mat& input_frame_2, cv::Mat
 }
 
 bool allOverlap(const cv::Mat& frame, int x, int y, int kHalf, const cv::Mat& kernel){
+    // Ensures all values in frame and kernel are the same.
 
     // check if the kernel matches the subframe
     for (int ky = -kHalf; ky <= kHalf; ky++) {
@@ -261,11 +266,11 @@ bool allOverlap(const cv::Mat& frame, int x, int y, int kHalf, const cv::Mat& ke
     }
 
     return true;
-
 }
 
 void dilate(cv::Mat& input_frame, cv::Mat& target_frame, int x, int y, int kHalf, const cv::Mat& kernel){
-
+    // Performs the dialiation operation on a frame using a kernel
+    
     // Dialate the pixel
     if (input_frame.at<uchar>(y, x) > 0){
 
@@ -278,6 +283,7 @@ void dilate(cv::Mat& input_frame, cv::Mat& target_frame, int x, int y, int kHalf
 }
 
 void morphologicalOpening(cv::Mat& frame, const cv::Mat& kernel) {
+    // Morpholocal opening operation to remove noise from a mask.
 
     if (kernel.rows != kernel.cols){
         syslog(LOG_ERR, "Kernel is not square\n");
@@ -289,7 +295,7 @@ void morphologicalOpening(cv::Mat& frame, const cv::Mat& kernel) {
 
     cv::Mat eroded = cv::Mat::zeros(frame.size(), CV_8UC1);
 
-    // Perform erosion
+    // Perform Erosion
     for (int y = kHalf; y < frame.rows - kHalf; y++) {
         for (int x = kHalf; x < frame.cols - kHalf; x++) {
             eroded.at<uchar>(y, x) = 255 * allOverlap(frame, x, y, kHalf, kernel);
@@ -309,6 +315,7 @@ void morphologicalOpening(cv::Mat& frame, const cv::Mat& kernel) {
 
 
 void calculateCOM(const cv::Mat& frame, int& x, int& y){
+    // Calculates the center of mass of the image.
     int total_mass = 0;
     int total_x = 0;
     int total_y = 0;
